@@ -88,12 +88,12 @@ exports.validateEvent = [
   body('date')
     .isISO8601()
     .withMessage('Please enter a valid date')
-    .custom((value) => {
+    /*.custom((value) => {
       if (new Date(value) <= new Date()) {
         throw new Error('Event date must be in the future');
       }
       return true;
-    }),
+    })*/,
   body('time')
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .withMessage('Please enter time in HH:MM format'),

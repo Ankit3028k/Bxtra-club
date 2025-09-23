@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, Clock, Users } from 'lucide-react';
+import { X, Calendar, MapPin, Clock, Users, Image } from 'lucide-react';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface CreateEventModalProps {
     date: string;
     time: string;
     maxAttendees: number;
+    image: File | null;
   }) => void;
 }
 
@@ -21,13 +22,26 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
     city: '',
     date: '',
     time: '',
-    maxAttendees: 50
+    maxAttendees: 50,
+    image: null as File | null
   });
 
-  if (!isOpen) return null;
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.title) errors.title = 'Title is required';
+    if (!formData.description) errors.description = 'Description is required';
+    if (!formData.city) errors.city = 'City is required';
+    if (!formData.date) errors.date = 'Date is required';
+    if (!formData.time) errors.time = 'Time is required';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     onSubmit(formData);
     setFormData({
       title: '',
@@ -35,10 +49,13 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
       city: '',
       date: '',
       time: '',
-      maxAttendees: 50
+      maxAttendees: 50,
+      image: null
     });
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -66,6 +83,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               required
             />
+            {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
           </div>
 
           <div>
@@ -80,6 +98,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
               rows={3}
               required
             />
+            {formErrors.description && <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -98,6 +117,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
                   required
                 />
               </div>
+              {formErrors.city && <p className="text-red-500 text-sm mt-1">{formErrors.city}</p>}
             </div>
 
             <div>
@@ -133,6 +153,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
                   required
                 />
               </div>
+              {formErrors.date && <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>}
             </div>
 
             <div>
@@ -149,6 +170,26 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
                   required
                 />
               </div>
+              {formErrors.time && <p className="text-red-500 text-sm mt-1">{formErrors.time}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Event Image
+            </label>
+            <div className="relative">
+              <Image className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setFormData({ ...formData, image: e.target.files[0] });
+                  }
+                }}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
             </div>
           </div>
 

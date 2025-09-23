@@ -81,7 +81,7 @@ export const PlanSelectionPage: React.FC = () => {
           throw new Error('User not available');
         }
         
-        const response = await axios.post('http://localhost:5000/api/plans/skip', {
+        const response = await axios.post('https://bharatx-events.onrender.com/api/plans/skip', {
           userId: user.id
         }, {
           headers: {
@@ -102,7 +102,7 @@ export const PlanSelectionPage: React.FC = () => {
     
     try {
       // Create payment intent
-      const response = await axios.post('http://localhost:5000/api/plans/create-payment-intent', {
+      const response = await axios.post('https://bharatx-events.onrender.com/api/plans/create-payment-intent', {
         planId
       }, {
         headers: {
@@ -135,7 +135,7 @@ export const PlanSelectionPage: React.FC = () => {
         handler: async function(response: any) {
           try {
             // Confirm payment
-            await axios.post('http://localhost:5000/api/plans/confirm-payment', {
+            await axios.post('https://bharatx-events.onrender.com/api/plans/confirm-payment', {
               paymentId: response.razorpay_payment_id,
               orderId: response.razorpay_order_id,
               signature: response.razorpay_signature,

@@ -43,8 +43,22 @@ interface Post {
   createdAt: string;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  city: string;
+  date: string;
+  time: string;
+  maxAttendees: number;
+  attendees: number;
+  image: string;
+  organizer: string;
+  isJoined: boolean;
+}
+
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('home');
@@ -52,26 +66,28 @@ export const Dashboard: React.FC = () => {
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showCreateRequest, setShowCreateRequest] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     if (!user) {
       navigate('/login');
       return;
     }
 
-    // Get tab from URL params
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab') || 'home';
     setActiveTab(tab);
-    
-    // Fetch posts
+
     const fetchPosts = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/posts');
+        const response = await fetch('https://bharatx-events.onrender.com/api/posts');
         const data = await response.json();
         if (data.success) {
           setPosts(data.data);
@@ -79,12 +95,12 @@ export const Dashboard: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch posts:', error);
       } finally {
-        setLoading(false);
+        setPostsLoading(false);
       }
     };
 
     fetchPosts();
-  }, [user, navigate, location]);
+  }, [user, navigate, location, isLoading]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -93,7 +109,7 @@ export const Dashboard: React.FC = () => {
 
   const handleCreatePost = async (postData: { content: string; tags: string[]; image?: string }) => {
     try {
-      const response = await fetch('http://localhost:5000/api/posts', {
+      const response = await fetch('https://bharatx-events.onrender.com/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +124,10 @@ export const Dashboard: React.FC = () => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create post');
+        throw {
+          message: data.message || 'Failed to create post',
+          errors: data.errors
+        };
       }
 
       const newPost = data.post;
@@ -125,7 +144,7 @@ export const Dashboard: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+      const response = await fetch(`https://bharatx-events.onrender.com/api/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('bxtra-token')}`
@@ -141,23 +160,51 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleCreateEvent = (eventData: {
+  const handleCreateEvent = async (eventData: {
     title: string;
     description: string;
     city: string;
     date: string;
     time: string;
     maxAttendees: number;
+    image: File | null;
   }) => {
-    const newEvent = {
-      id: Date.now().toString(),
-      ...eventData,
-      attendees: 1,
-      image: 'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=800',
-      organizer: user!.name,
-      isJoined: true
-    };
-    setEvents([newEvent, ...events]);
+    try {
+      console.log('Submitting event data:', eventData);
+      const formData = new FormData();
+      formData.append('title', eventData.title);
+      formData.append('description', eventData.description);
+      formData.append('city', eventData.city);
+      formData.append('date', eventData.date);
+      formData.append('time', eventData.time);
+      formData.append('maxAttendees', eventData.maxAttendees.toString());
+      
+      if (eventData.image) {
+        formData.append('image', eventData.image);
+      }
+
+      const response = await fetch('https://bharatx-events.onrender.com/api/events', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('bxtra-token')}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw {
+          message: data.message || 'Failed to create event',
+          errors: data.errors
+        };
+      }
+
+      const newEvent = data.event;
+      setEvents([newEvent, ...events]);
+    } catch (error) {
+      console.error('Create event error:', error);
+      alert('Failed to create event');
+    }
   };
 
   const handleCreateRequest = (requestData: {
@@ -189,7 +236,6 @@ export const Dashboard: React.FC = () => {
       return;
     }
 
-    // Mock search implementation
     const results = {
       posts: posts.filter(post => 
         post.content.toLowerCase().includes(query.toLowerCase()) ||
@@ -208,7 +254,22 @@ export const Dashboard: React.FC = () => {
     setSearchResults(results);
   };
 
-  if (!user) return null;
+  const handlePlanChange = (plan: string) => {
+    alert(`Plan changed to ${plan}`);
+    // In a real app, this would call an API to update the user's plan
+  };
+  
+  const handleUpgrade = async () => {
+    try {
+      // This would call an API to upgrade the user's plan
+      alert('Plan upgrade successful! You can now create events.');
+    } catch (error) {
+      console.error('Upgrade error:', error);
+      alert('Failed to upgrade plan');
+    }
+  };
+
+  if (isLoading) return null;
 
   if (user.status === 'pending') {
     return (
@@ -362,8 +423,28 @@ export const Dashboard: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
-              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors">
-                Update Profile
+              
+              {/* Plan Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Your Plan</label>
+                <div className="flex flex-wrap gap-4">
+                  {['Free', 'Premium', 'Business'].map((plan) => (
+                    <div 
+                      key={plan}
+                      className={`px-4 py-2 border rounded-lg cursor-pointer ${user.plan === plan ? 'bg-purple-100 border-purple-500' : 'border-gray-300'}`}
+                      onClick={() => handlePlanChange(plan)}
+                    >
+                      {plan}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <button 
+                className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                onClick={handleUpgrade}
+              >
+                {user.plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
               </button>
             </div>
           </div>
@@ -456,28 +537,32 @@ export const Dashboard: React.FC = () => {
 
             {!searchResults && (
               <div>
-                {loading ? (
+                {postsLoading ? (
                   <div className="flex justify-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
                   </div>
                 ) : (
-                  posts.map((post) => ({
-                    id: post._id,
-                    author: {
-                      name: post.author?.name || 'Unknown',
-                      avatar: post.author?.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
-                      startup: post.author?.startup || 'Unknown',
-                      role: post.author?.role || 'Unknown'
-                    },
-                    content: post.content,
-                    image: post.image || undefined,
-                    tags: post.tags,
-                    likes: post.likes.length,
-                    comments: post.comments.length,
-                    timestamp: new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    isLiked: user ? post.likes.includes(user.id) : false
-                  })).map(post => (
-                    <PostCard key={post.id} post={post} onDelete={handleDeletePost} />
+                  posts.map((post) => (
+                    <PostCard 
+                      key={post._id} 
+                      post={{
+                        id: post._id,
+                        author: {
+                          name: post.author?.name || 'Unknown',
+                          avatar: post.author?.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
+                          startup: post.author?.startup || 'Unknown',
+                          role: post.author?.role || 'Unknown'
+                        },
+                        content: post.content,
+                        image: post.image,
+                        tags: post.tags,
+                        likes: post.likes.length,
+                        comments: post.comments.length,
+                        timestamp: new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        isLiked: user ? post.likes.includes(user.id) : false,
+                      }} 
+                      onDelete={handleDeletePost} 
+                    />
                   ))
                 )}
               </div>

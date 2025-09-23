@@ -15,10 +15,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
-  loading: boolean;
 }
 
 interface RegisterData {
@@ -68,28 +68,44 @@ const mockUsers: User[] = [
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing auth token
-    const token = localStorage.getItem('bxtra-token');
-    const userData = localStorage.getItem('bxtra-user');
-    
-    if (token && userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser({
-        ...parsedUser,
-        id: parsedUser._id || parsedUser.id
-      });
-    }
-    setLoading(false);
+    const fetchUser = async () => {
+      const token = localStorage.getItem('bxtra-token');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('https://bharatx-events.onrender.com/api/auth/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUser({ ...data.user, plan: data.user.plan || 'Free' });
+        } else {
+          localStorage.removeItem('bxtra-token');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true);
+    setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('https://bharatx-events.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,15 +132,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Login error:', error);
       return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const register = async (userData: RegisterData): Promise<boolean> => {
-    setLoading(true);
+    setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('https://bharatx-events.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Registration error:', error);
       return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -161,10 +177,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     isAuthenticated: !!user,
+    isLoading,
     login,
     register,
     logout,
-    loading
   };
 
   return (
