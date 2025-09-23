@@ -76,7 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userData = localStorage.getItem('bxtra-user');
     
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser({
+        ...parsedUser,
+        id: parsedUser._id || parsedUser.id
+      });
     }
     setLoading(false);
   }, []);
@@ -84,39 +88,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     setLoading(true);
     
-    // Mock login - in real app, this would be an API call
-    const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser && password === 'password') {
-      const token = 'mock-jwt-token';
-      localStorage.setItem('bxtra-token', token);
-      localStorage.setItem('bxtra-user', JSON.stringify(foundUser));
-      setUser(foundUser);
-      setLoading(false);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Save token and user data
+      localStorage.setItem('bxtra-token', data.token);
+      localStorage.setItem('bxtra-user', JSON.stringify(data.user));
+      setUser({
+        ...data.user,
+        id: data.user._id // Map _id to id
+      });
+      
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
-    return false;
   };
 
   const register = async (userData: RegisterData): Promise<boolean> => {
     setLoading(true);
     
-    // Mock registration
-    const newUser: User = {
-      id: Date.now().toString(),
-      ...userData,
-      status: 'pending',
-      plan: 'Basic'
-    };
-    
-    const token = 'mock-jwt-token';
-    localStorage.setItem('bxtra-token', token);
-    localStorage.setItem('bxtra-user', JSON.stringify(newUser));
-    setUser(newUser);
-    setLoading(false);
-    return true;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // Save token and user data
+      localStorage.setItem('bxtra-token', data.token);
+      localStorage.setItem('bxtra-user', JSON.stringify(data.user));
+      setUser(data.user);
+      
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {

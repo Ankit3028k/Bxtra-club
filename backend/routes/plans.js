@@ -1,8 +1,14 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 const Plan = require('../models/Plan');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_SECRET
+});
 
 const router = express.Router();
 
@@ -55,14 +61,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @desc    Create payment intent
+// @desc    Create Razorpay order
 // @route   POST /api/plans/create-payment-intent
 // @access  Private
 router.post('/create-payment-intent', protect, async (req, res) => {
   try {
     const { planId } = req.body;
 
-    const plan = await Plan.findById(planId);
+    // Find plan by name instead of ID
+    const plan = await Plan.findOne({ name: planId });
     if (!plan) {
       return res.status(404).json({
         success: false,
@@ -70,50 +77,24 @@ router.post('/create-payment-intent', protect, async (req, res) => {
       });
     }
 
-    // Create or retrieve Stripe customer
-    let customer;
-    if (req.user.stripeCustomerId) {
-      customer = await stripe.customers.retrieve(req.user.stripeCustomerId);
-    } else {
-      customer = await stripe.customers.create({
-        email: req.user.email,
-        name: req.user.name,
-        metadata: {
-          userId: req.user.id
-        }
-      });
-
-      // Update user with Stripe customer ID
-      await User.findByIdAndUpdate(req.user.id, {
-        stripeCustomerId: customer.id
-      });
-    }
-
-    // Create payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: plan.price * 100, // Convert to cents
-      currency: plan.currency.toLowerCase(),
-      customer: customer.id,
-      metadata: {
-        planId: plan._id.toString(),
-        userId: req.user.id,
-        planName: plan.name
-      },
-      automatic_payment_methods: {
-        enabled: true
-      }
+    // Create Razorpay order
+    const order = await razorpay.orders.create({
+      amount: plan.price * 100, // in smallest currency unit
+      currency: plan.currency.toUpperCase(), // Razorpay expects uppercase
+      receipt: `receipt_${new Date().getTime()}`,
+      payment_capture: 1 // auto capture
     });
 
     res.status(200).json({
       success: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id
+      orderId: order.id,
+      key: process.env.RAZORPAY_KEY_ID
     });
   } catch (error) {
-    console.error('Create payment intent error:', error);
+    console.error('Create order error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error creating payment intent'
+      message: 'Server error creating order'
     });
   }
 });
@@ -123,21 +104,21 @@ router.post('/create-payment-intent', protect, async (req, res) => {
 // @access  Private
 router.post('/confirm-payment', protect, async (req, res) => {
   try {
-    const { paymentIntentId } = req.body;
+    const { paymentId, orderId, signature, planId } = req.body;
 
-    // Retrieve payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    // Verify the payment signature
+    const generatedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_SECRET)
+                                   .update(orderId + "|" + paymentId)
+                                   .digest('hex');
 
-    if (paymentIntent.status !== 'succeeded') {
+    if (generatedSignature !== signature) {
       return res.status(400).json({
         success: false,
-        message: 'Payment not completed'
+        message: 'Payment verification failed'
       });
     }
 
-    const planId = paymentIntent.metadata.planId;
     const plan = await Plan.findById(planId);
-
     if (!plan) {
       return res.status(404).json({
         success: false,
@@ -340,6 +321,59 @@ router.get('/subscription', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error getting subscription'
+    });
+  }
+});
+
+// @desc    Skip plan selection (choose free plan)
+// @route   POST /api/plans/skip
+// @access  Private
+router.post('/skip', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+    
+    const user = await User.findById(userId);
+
+    // If user already has a plan, return error
+    if (user.plan !== 'Free') {
+      return res.status(400).json({
+        success: false,
+        message: 'User already has a plan selected'
+      });
+    }
+
+    // Update user to Free plan and set subscriptionStatus to active
+    user.plan = 'Free';
+    user.subscriptionStatus = 'active';
+    
+    // Bypass approval requirement for initial plan selection
+    if (user.status === 'pending') {
+      user.status = 'approved';
+    }
+    
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Free plan selected successfully',
+      user: {
+        id: user._id,
+        plan: user.plan,
+        subscriptionStatus: user.subscriptionStatus
+      }
+    });
+  } catch (error) {
+    console.error('Skip plan error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error skipping plan selection'
     });
   }
 });

@@ -7,108 +7,41 @@ import { PostCard } from '../components/PostCard';
 import { EventCard } from '../components/EventCard';
 import { RequestCard } from '../components/RequestCard';
 import { SidebarCard } from '../components/SidebarCard';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { CreatePostModal } from '../components/CreatePostModal';
 import { CreateEventModal } from '../components/CreateEventModal';
 import { CreateRequestModal } from '../components/CreateRequestModal';
 import { SearchBar } from '../components/SearchBar';
 
-// Mock data
-const mockPosts = [
-  {
-    id: '1',
-    author: {
-      name: 'Sarah Chen',
-      avatar: 'https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=150',
-      startup: 'TechFlow',
-      role: 'CEO'
-    },
-    content: 'Just closed our Series A! 🎉 Grateful for the amazing journey and excited for what\'s ahead. The BXtra Club community has been instrumental in connecting us with the right investors.',
-    tags: ['funding', 'seriesA', 'milestone'],
-    likes: 45,
-    comments: 12,
-    timestamp: '2 hours ago',
-    isLiked: false
-  },
-  {
-    id: '2',
-    author: {
-      name: 'Alex Rodriguez',
-      avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
-      startup: 'DataViz',
-      role: 'CTO'
-    },
-    content: 'Looking for feedback on our new AI-powered analytics dashboard. Would love to connect with fellow founders who have experience in the B2B SaaS space.',
-    image: 'https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=800',
-    tags: ['AI', 'SaaS', 'feedback'],
-    likes: 23,
-    comments: 8,
-    timestamp: '5 hours ago',
-    isLiked: true
-  }
-];
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  startup: string;
+  role: string;
+  city: string;
+  status: 'pending' | 'approved';
+  plan: string;
+  avatar?: string;
+}
 
-const mockEvents = [
-  {
-    id: '1',
-    title: 'Startup Founders Networking Night',
-    description: 'Join us for an exclusive evening of networking with successful entrepreneurs and investors.',
-    city: 'San Francisco',
-    date: 'March 15, 2024',
-    time: '6:00 PM',
-    attendees: 45,
-    maxAttendees: 50,
-    image: 'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=800',
-    organizer: 'BXtra Club',
-    isJoined: false
-  },
-  {
-    id: '2',
-    title: 'AI in Startup Operations Workshop',
-    description: 'Learn how to leverage AI tools to streamline your startup operations and scale efficiently.',
-    city: 'New York',
-    date: 'March 20, 2024',
-    time: '2:00 PM',
-    attendees: 28,
-    maxAttendees: 40,
-    image: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800',
-    organizer: 'Tech Leaders NYC',
-    isJoined: true
-  }
-];
+interface PostAuthor {
+  name: string;
+  avatar: string;
+  startup: string;
+  role: string;
+}
 
-const mockRequests = [
-  {
-    id: '1',
-    author: {
-      name: 'Maria Garcia',
-      avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150',
-      startup: 'GreenTech Solutions'
-    },
-    title: 'Looking for a Technical Co-Founder',
-    content: 'We\'re building a sustainable energy platform and need a technical co-founder with experience in IoT and renewable energy systems. Seed funding secured.',
-    tags: ['co-founder', 'technical', 'greentech'],
-    replies: 15,
-    upvotes: 32,
-    timestamp: '1 day ago',
-    isUpvoted: false
-  },
-  {
-    id: '2',
-    author: {
-      name: 'David Kim',
-      avatar: 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=150',
-      startup: 'FinanceAI'
-    },
-    title: 'Seeking Introductions to VCs in Fintech',
-    content: 'We\'re raising our Series A and would love warm introductions to VCs who specialize in fintech, particularly in the B2B lending space.',
-    tags: ['vc', 'fintech', 'introductions'],
-    replies: 8,
-    upvotes: 19,
-    timestamp: '3 days ago',
-    isUpvoted: true
-  }
-];
+interface Post {
+  _id: string;
+  author: PostAuthor;
+  content: string;
+  image?: string;
+  tags: string[];
+  likes: string[]; // Assuming likes are user ids
+  comments: any[]; // Define a proper comment type if available
+  createdAt: string;
+}
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -118,10 +51,11 @@ export const Dashboard: React.FC = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showCreateRequest, setShowCreateRequest] = useState(false);
-  const [posts, setPosts] = useState(mockPosts);
-  const [events, setEvents] = useState(mockEvents);
-  const [requests, setRequests] = useState(mockRequests);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -133,6 +67,23 @@ export const Dashboard: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab') || 'home';
     setActiveTab(tab);
+    
+    // Fetch posts
+    const fetchPosts = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/posts');
+        const data = await response.json();
+        if (data.success) {
+          setPosts(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
   }, [user, navigate, location]);
 
   const handleTabChange = (tab: string) => {
@@ -140,24 +91,54 @@ export const Dashboard: React.FC = () => {
     navigate(`/dashboard?tab=${tab}`, { replace: true });
   };
 
-  const handleCreatePost = (postData: { content: string; tags: string[]; image?: string }) => {
-    const newPost = {
-      id: Date.now().toString(),
-      author: {
-        name: user!.name,
-        avatar: user!.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
-        startup: user!.startup,
-        role: user!.role
-      },
-      content: postData.content,
-      image: postData.image,
-      tags: postData.tags,
-      likes: 0,
-      comments: 0,
-      timestamp: 'Just now',
-      isLiked: false
-    };
-    setPosts([newPost, ...posts]);
+  const handleCreatePost = async (postData: { content: string; tags: string[]; image?: string }) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('bxtra-token')}`
+        },
+        body: JSON.stringify({
+          content: postData.content,
+          tags: postData.tags,
+          image: postData.image
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create post');
+      }
+
+      const newPost = data.post;
+      setPosts([newPost, ...posts]);
+    } catch (error) {
+      console.error('Create post error:', error);
+      alert('Failed to create post');
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('bxtra-token')}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to delete post');
+
+      setPosts(posts.filter(p => p._id !== postId));
+    } catch (error) {
+      console.error('Delete post error:', error);
+      alert('Failed to delete post');
+    }
   };
 
   const handleCreateEvent = (eventData: {
@@ -202,7 +183,7 @@ export const Dashboard: React.FC = () => {
     setRequests([newRequest, ...requests]);
   };
 
-  const handleSearch = (query: string, filters: any) => {
+  const handleSearch = (query: string) => {
     if (!query.trim()) {
       setSearchResults(null);
       return;
@@ -212,7 +193,7 @@ export const Dashboard: React.FC = () => {
     const results = {
       posts: posts.filter(post => 
         post.content.toLowerCase().includes(query.toLowerCase()) ||
-        post.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
+        post.tags.some((tag: string) => tag.toLowerCase().includes(query.toLowerCase()))
       ),
       events: events.filter(event =>
         event.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -401,7 +382,7 @@ export const Dashboard: React.FC = () => {
                     <div>
                       <h4 className="font-semibold text-gray-700 mb-2">Posts ({searchResults.posts.length})</h4>
                       {searchResults.posts.slice(0, 3).map((post: any) => (
-                        <PostCard key={post.id} post={post} />
+                        <PostCard key={post.id} post={post} onDelete={handleDeletePost} />
                       ))}
                     </div>
                   )}
@@ -475,9 +456,30 @@ export const Dashboard: React.FC = () => {
 
             {!searchResults && (
               <div>
-              {posts.map(post => (
-                <PostCard key={post.id} post={post} />
-              ))}
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                  </div>
+                ) : (
+                  posts.map((post) => ({
+                    id: post._id,
+                    author: {
+                      name: post.author?.name || 'Unknown',
+                      avatar: post.author?.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
+                      startup: post.author?.startup || 'Unknown',
+                      role: post.author?.role || 'Unknown'
+                    },
+                    content: post.content,
+                    image: post.image || undefined,
+                    tags: post.tags,
+                    likes: post.likes.length,
+                    comments: post.comments.length,
+                    timestamp: new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    isLiked: user ? post.likes.includes(user.id) : false
+                  })).map(post => (
+                    <PostCard key={post.id} post={post} onDelete={handleDeletePost} />
+                  ))
+                )}
               </div>
             )}
           </div>

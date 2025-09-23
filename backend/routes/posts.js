@@ -4,38 +4,28 @@ const { protect, requirePlan } = require('../middleware/auth');
 const { validatePost, validateComment, handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
-
+ 
 // @desc    Get all posts
 // @route   GET /api/posts
-// @access  Private
-router.get('/', protect, async (req, res) => {
+// @access  Public
+router.get('/', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const posts = await Post.find({ isPublic: true })
-      .populate('author', 'name startup role city avatar')
-      .populate('comments.user', 'name avatar')
-      .sort({ isPinned: -1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Post.countDocuments({ isPublic: true });
-
+    const posts = await Post.find().populate('author', 'name avatar startup role').sort({ createdAt: -1 });
+    
     res.status(200).json({
       success: true,
       count: posts.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      posts
+      data: posts
     });
   } catch (error) {
     console.error('Get posts error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Server error getting posts'
+      message: 'Server error fetching posts',
+      error: error.message
     });
   }
 });
@@ -62,6 +52,9 @@ router.get('/:id', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Get post error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error getting post'
@@ -74,13 +67,13 @@ router.get('/:id', protect, async (req, res) => {
 // @access  Private
 router.post('/', protect, validatePost, handleValidationErrors, async (req, res) => {
   try {
-    const { content, image, tags } = req.body;
-
+    const { content, tags, image } = req.body;
+    
     const post = await Post.create({
       author: req.user.id,
       content,
-      image,
-      tags: tags || []
+      tags,
+      image
     });
 
     const populatedPost = await Post.findById(post._id)
@@ -93,6 +86,9 @@ router.post('/', protect, validatePost, handleValidationErrors, async (req, res)
     });
   } catch (error) {
     console.error('Create post error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error creating post'
@@ -137,6 +133,9 @@ router.put('/:id', protect, validatePost, handleValidationErrors, async (req, re
     });
   } catch (error) {
     console.error('Update post error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error updating post'
@@ -174,6 +173,9 @@ router.delete('/:id', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete post error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error deleting post'
@@ -215,6 +217,9 @@ router.put('/:id/like', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Like post error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error liking post'
@@ -258,6 +263,9 @@ router.post('/:id/comments', protect, validateComment, handleValidationErrors, a
     });
   } catch (error) {
     console.error('Add comment error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error adding comment'
@@ -306,6 +314,9 @@ router.delete('/:id/comments/:commentId', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete comment error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error deleting comment'
@@ -357,6 +368,9 @@ router.get('/search', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Search posts error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Server error searching posts'

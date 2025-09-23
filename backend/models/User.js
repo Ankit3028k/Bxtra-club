@@ -68,6 +68,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     match: [/^https?:\/\/.+/, 'Please enter a valid Twitter URL']
   },
+  profileCompletion: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
   stripeCustomerId: {
     type: String,
     default: null
@@ -83,12 +89,14 @@ const userSchema = new mongoose.Schema({
   },
   connections: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    default: []
   }],
   connectionRequests: [{
     from: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      default: null
     },
     status: {
       type: String,
@@ -99,6 +107,8 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  }, {
+    default: []
   }],
   lastActive: {
     type: Date,
@@ -119,7 +129,7 @@ const userSchema = new mongoose.Schema({
 
 // Virtual for connection count
 userSchema.virtual('connectionCount').get(function() {
-  return this.connections.length;
+  return this.connections ? this.connections.length : 0;
 });
 
 // Index for better query performance

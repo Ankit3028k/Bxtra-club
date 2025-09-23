@@ -9,14 +9,14 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 // Import routes
-const authRoutes = require('./routes/auth');
+const auth = require('./routes/auth');
+const plans = require('./routes/plans');
+const posts = require('./routes/posts');
 const userRoutes = require('./routes/user');
 const eventRoutes = require('./routes/events');
 const requestRoutes = require('./routes/requests');
 const adminRoutes = require('./routes/admin');
-const planRoutes = require('./routes/plans');
 const perkRoutes = require('./routes/perks');
-const postRoutes = require('./routes/posts');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -24,7 +24,12 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
 app.use(compression());
 
 // Rate limiting
@@ -37,7 +42,7 @@ app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5174',
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -62,14 +67,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bxtra-clu
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', auth);
+app.use('/api/plans', plans);
+app.use('/api/posts', posts);
 app.use('/api/user', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/plans', planRoutes);
 app.use('/api/perks', perkRoutes);
-app.use('/api/posts', postRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

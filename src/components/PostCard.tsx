@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2 } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -20,11 +20,13 @@ interface Post {
 
 interface PostCardProps {
   post: Post;
+  onDelete: (postId: string) => void;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [likesCount, setLikesCount] = useState(post.likes);
+  const [showMenu, setShowMenu] = useState(false);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -46,9 +48,29 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <p className="text-xs text-gray-500">{post.timestamp}</p>
           </div>
         </div>
-        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <MoreHorizontal className="h-5 w-5 text-gray-500" />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowMenu(!showMenu)} 
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <MoreHorizontal className="h-5 w-5 text-gray-500" />
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    onDelete(post.id);
+                    setShowMenu(false);
+                  }}
+                  className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete Post
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mb-4">
