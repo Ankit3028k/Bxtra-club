@@ -19,8 +19,8 @@ const generateToken = (id) => {
 
 // @desc    Register a new admin
 // @route   POST /api/admin/register
-// @access  Public (Should be protected in production)
-router.post('/register', async (req, res) => {
+// @access  Private ( Admins only)
+router.post('/register', adminProtect, async (req, res) => {
   try {
     const { name, email, password, role = 'admin' } = req.body;
 
@@ -30,6 +30,14 @@ router.post('/register', async (req, res) => {
         message: 'Please provide name, email, and password'
       });
     }
+
+    // Only a super_admin can create other admins
+    // if (req.admin.role !== 'super_admin') {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Not authorized to create new admins'
+    //   });
+    // }
 
     // Check if admin already exists
     let admin = await Admin.findOne({ email });
