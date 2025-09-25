@@ -73,32 +73,39 @@ export const PlanSelectionPage: React.FC = () => {
 
   const handleSelectPlan = async (planId: string) => {
     setLoading(true);
-    
+   
     if (planId === 'free') {
       // Skip plan flow
-      try {
-        if (!user) {
-          throw new Error('User not available');
-        }
-        
-        const response = await axios.post('https://bharatx-events.onrender.com/api/plans/skip', {
-          userId: user.id
-        }, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('bxtra-token')}`
-          }
-        });
-        
-        if (response.data.success) {
+      
           navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Error skipping plan:', error);
-      } finally {
-        setLoading(false);
-      }
+       
       return;
     }
+    // if (planId === 'free') {
+    //   // Skip plan flow
+    //   try {
+    //     if (!user) {
+    //       throw new Error('User not available');
+    //     }
+        
+    //     const response = await axios.post('https://bharatx-events.onrender.com/api/plans/skip', {
+    //       userId: user.id
+    //     }, {
+    //       headers: {
+    //         Authorization: `Bearer ${localStorage.getItem('bxtra-token')}`
+    //       }
+    //     });
+        
+    //     if (response.data.success) {
+    //       navigate('/dashboard');
+    //     }
+    //   } catch (error) {
+    //     console.error('Error skipping plan:', error);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    //   return;
+    // }
     
     try {
       // Create payment intent

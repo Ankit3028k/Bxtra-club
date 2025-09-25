@@ -102,7 +102,7 @@ router.post('/create-payment-intent', protect, async (req, res) => {
 // @desc    Confirm payment and update user plan
 // @route   POST /api/plans/confirm-payment
 // @access  Private
-router.post('/confirm-payment', protect, async (req, res) => {
+router.post('/confirm-payment', async (req, res) => {
   try {
     const { paymentId, orderId, signature, planId } = req.body;
 
@@ -354,9 +354,9 @@ router.post('/skip', async (req, res) => {
     user.subscriptionStatus = 'active';
     
     // Bypass approval requirement for initial plan selection
-    if (user.status === 'pending') {
-      user.status = 'approved';
-    }
+    // if (user.status === 'pending') {
+    //   user.status = 'approved';
+    // }
     
     await user.save();
 
