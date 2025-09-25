@@ -1,75 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Check, ArrowLeft, Crown, Star } from 'lucide-react';
 import axios from 'axios';
 
-const plans = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: 0,
-    description: 'Perfect for founders getting started',
-    features: [
-      'Access to founder network',
-      'Basic community features',
-      'Limited events access',
-      'Email support'
-    ],
-    popular: false
-  },
-  {
-    id: 'basic',
-    name: 'Basic',
-    price: 29,
-    description: 'Perfect for early-stage founders',
-    features: [
-      'Everything in Free',
-      'Monthly networking events',
-      'Basic perks & discounts',
-      'Community forum access',
-      'Mobile app'
-    ],
-    popular: false
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: 99,
-    description: 'Best for growing startups',
-    features: [
-      'Everything in Basic',
-      'Exclusive investor events',
-      'Premium perks worth $10k+',
-      'Direct messaging',
-      'Priority customer support',
-      'Startup showcases',
-      'Mentorship program'
-    ],
-    popular: true
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 299,
-    description: 'For established companies',
-    features: [
-      'Everything in Premium',
-      'Custom networking events',
-      'Dedicated account manager',
-      'API access',
-      'Advanced analytics',
-      'White-label solutions',
-      'Custom integrations'
-    ],
-    popular: false
-  }
-];
+interface Plan {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  isPopular: boolean;
+  // The backend sends 'name' for the id, let's keep it consistent
+  // but we'll use the lowercase name for the payment intent.
+  id: string; 
+}
 
 export const PlanSelectionPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setPageLoading(true);
+        const response = await axios.get('https://bharatx-events.onrender.com/api/plans');
+        if (response.data.success) {
+          // The backend sends plan names like 'Premium', but payment intent expects 'premium'
+          const formattedPlans = response.data.plans.map((plan: any) => ({
+            ...plan,
+            id: plan.name.toLowerCase()
+          }));
+          setPlans(formattedPlans);
+        } else {
+          setError('Failed to load plans.');
+        }
+      } catch (err) {
+        setError('An error occurred while fetching plans. Please try again later.');
+        console.error('Fetch plans error:', err);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
 
   const handleSelectPlan = async (planId: string) => {
     setLoading(true);
@@ -191,15 +170,18 @@ export const PlanSelectionPage: React.FC = () => {
           </p>
         </div>
 
+        {pageLoading && <div className="text-center text-xl">Loading plans...</div>}
+        {error && <div className="text-center text-xl text-red-500 bg-red-100 p-4 rounded-lg">{error}</div>}
+
         <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan) => (
+          {!pageLoading && !error && plans.map((plan) => (
             <div
               key={plan.id}
               className={`relative bg-white rounded-2xl shadow-xl p-8 ${
-                plan.popular ? 'ring-2 ring-purple-600 transform scale-105' : ''
+                plan.isPopular ? 'ring-2 ring-purple-600 transform scale-105' : ''
               }`}
             >
-              {plan.popular && (
+              {plan.isPopular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center">
                     <Crown className="h-4 w-4 mr-1" />
@@ -230,7 +212,7 @@ export const PlanSelectionPage: React.FC = () => {
                 onClick={() => handleSelectPlan(plan.id)}
                 disabled={loading}
                 className={`w-full py-4 px-6 rounded-lg font-semibold transition-all ${
-                  plan.popular
+                  plan.isPopular
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
                     : plan.id === 'free'
                       ? 'bg-gray-800 text-white hover:bg-gray-900'
