@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Post = require('../models/Post');
 const Event = require('../models/Event');
+const Plan = require('../models/Plan');
 const Request = require('../models/Request');
 const { adminProtect } = require('../middleware/auth');
 const { validateLogin, handleValidationErrors } = require('../middleware/validation');
@@ -557,6 +558,73 @@ router.delete('/posts/:id', adminProtect, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error deleting post'
+    });
+  }
+});
+
+// @desc    Create a new subscription plan
+// @route   POST /api/admin/plans
+// @access  Private (Admin only)
+router.post('/plans', adminProtect, async (req, res) => {
+  try {
+    const { name, description, price, features, order, isPopular, isActive } = req.body;
+
+    // Basic validation
+    if (!name || price === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Plan name and price are required'
+      });
+    }
+
+    // Create new plan
+    const newPlan = await Plan.create({
+      name,
+      description: description || '',
+      price,
+      features: features || [],
+      order: order || 0,
+      isPopular: isPopular || false,
+      isActive: isActive !== undefined ? isActive : true
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Plan created successfully',
+      plan: newPlan
+    });
+  } catch (error) {
+    console.error('Create plan error:', error);
+    if (error.code === 11000) { // Duplicate key error
+      return res.status(400).json({
+        success: false,
+        message: 'A plan with this name already exists.'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Server error creating plan'
+    });
+  }
+});
+
+// @desc    Get all plans (for admin)
+// @route   GET /api/admin/plans
+// @access  Private (Admin only)
+router.get('/plans', adminProtect, async (req, res) => {
+  try {
+    const plans = await Plan.find({}).sort({ order: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: plans.length,
+      plans
+    });
+  } catch (error) {
+    console.error('Get plans error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting plans'
     });
   }
 });
