@@ -1,78 +1,114 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, X, Users, Calendar, MessageSquare, TrendingUp } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
-const mockPendingUsers = [
-  {
-    id: '3',
-    name: 'Jennifer Liu',
-    email: 'jennifer@techstartup.com',
-    startup: 'TechStartup',
-    role: 'CEO',
-    city: 'Seattle',
-    appliedAt: '2024-03-10',
-    plan: 'Premium'
-  },
-  {
-    id: '4',
-    name: 'Marcus Johnson',
-    email: 'marcus@innovateai.com',
-    startup: 'InnovateAI',
-    role: 'CTO',
-    city: 'Boston',
-    appliedAt: '2024-03-09',
-    plan: 'Basic'
-  }
-];
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  startup: string;
+  role: string;
+  city: string;
+  plan: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  paymentStatus?: 'Paid' | 'Unpaid' | 'Pending';
+}
 
-const mockUsers = [
-  {
-    id: '1',
-    name: 'Alex Johnson',
-    email: 'alex@startup.com',
-    plan: 'Premium',
-    paymentStatus: 'Paid'
-  },
-  {
-    id: '2',
-    name: 'Sarah Williams',
-    email: 'sarah@tech.io',
-    plan: 'Basic',
-    paymentStatus: 'Unpaid'
-  },
-  {
-    id: '3',
-    name: 'Michael Chen',
-    email: 'michael@ai.com',
-    plan: 'Premium',
-    paymentStatus: 'Paid'
-  },
-  {
-    id: '4',
-    name: 'Emma Rodriguez',
-    email: 'emma@health.com',
-    plan: 'Enterprise',
-    paymentStatus: 'Pending'
-  }
-];
-
-const mockStats = {
-  totalUsers: 1247,
-  pendingApplications: 23,
-  activeEvents: 8,
-  monthlyGrowth: 12.5
+interface AdminStats {
+  totalUsers: number;
+  pendingApplications: number;
+  activeEvents: number;
+  monthlyGrowth: number;
 };
 
 export const AdminPage: React.FC = () => {
-  const [pendingUsers, setPendingUsers] = useState(mockPendingUsers);
-  const [users] = useState(mockUsers);
+  const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<AdminStats>({ totalUsers: 0, pendingApplications: 0, activeEvents: 0, monthlyGrowth: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
-  const handleApprove = (userId: string) => {
-    setPendingUsers(prev => prev.filter(user => user.id !== userId));
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'admin')) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchData = async () => {
+      if (!user) return;
+
+      try {
+        const token = localStorage.getItem('bxtra-token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+        
+        const [usersRes, statsRes] = await Promise.all([
+          fetch('https://bharatx-events.onrender.com/api/admin/users', { headers }),
+          fetch('https://bharatx-events.onrender.com/api/admin/stats', { headers }),
+        ]);
+
+        if (!usersRes.ok || !statsRes.ok) {
+          throw new Error('Failed to fetch admin data');
+        }
+
+        const usersData = await usersRes.json();
+        const statsData = await statsRes.json();
+
+        setPendingUsers(usersData.data.filter((u: AdminUser) => u.status === 'pending'));
+        setUsers(usersData.data.filter((u: AdminUser) => u.status === 'approved'));
+        setStats(statsData.data);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user, isLoading, navigate]);
+
+  if (isLoading || !user || user.role !== 'admin') {
+    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner /></div>;
+  }
+
+  const handleApprove = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('bxtra-token');
+      const res = await fetch(`https://bharatx-events.onrender.com/api/admin/users/${userId}/approve`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to approve user');
+      
+      const approvedUser = pendingUsers.find(u => u.id === userId);
+      if (approvedUser) {
+        setUsers(prev => [...prev, { ...approvedUser, status: 'approved' }]);
+      }
+      setPendingUsers(prev => prev.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error("Error approving user:", error);
+      alert("Failed to approve user.");
+    }
   };
 
-  const handleReject = (userId: string) => {
-    setPendingUsers(prev => prev.filter(user => user.id !== userId));
+  const handleReject = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('bxtra-token');
+      const res = await fetch(`https://bharatx-events.onrender.com/api/admin/users/${userId}/reject`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to reject user');
+      setPendingUsers(prev => prev.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error("Error rejecting user:", error);
+      alert("Failed to reject user.");
+    }
   };
 
   return (
@@ -85,7 +121,7 @@ export const AdminPage: React.FC = () => {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <h1 className="text-2xl font-bold text-gray-900">BXtra Club Admin</h1>
-            </div>
+            </div> 
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">BX</span>
@@ -96,13 +132,16 @@ export const AdminPage: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {loading && <LoadingSpinner />}
+        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">{error}</div>}
+
         {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{mockStats.totalUsers}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -112,7 +151,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Pending Applications</p>
-                <p className="text-2xl font-bold text-orange-600">{mockStats.pendingApplications}</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.pendingApplications}</p>
               </div>
               <MessageSquare className="h-8 w-8 text-orange-600" />
             </div>
@@ -122,7 +161,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Active Events</p>
-                <p className="text-2xl font-bold text-green-600">{mockStats.activeEvents}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.activeEvents}</p>
               </div>
               <Calendar className="h-8 w-8 text-green-600" />
             </div>
@@ -132,7 +171,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Monthly Growth</p>
-                <p className="text-2xl font-bold text-purple-600">+{mockStats.monthlyGrowth}%</p>
+                <p className="text-2xl font-bold text-purple-600">+{stats.monthlyGrowth}%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
@@ -147,7 +186,7 @@ export const AdminPage: React.FC = () => {
           </div>
 
           <div className="p-6">
-            {pendingUsers.length === 0 ? (
+            {!loading && pendingUsers.length === 0 ? (
               <div className="text-center py-12">
                 <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="h-8 w-8 text-green-600" />
@@ -188,7 +227,7 @@ export const AdminPage: React.FC = () => {
                           </div>
                           <div>
                             <span className="text-gray-500">Applied:</span>
-                            <p className="text-gray-900">{user.appliedAt}</p>
+                            <p className="text-gray-900">{new Date(user.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
                       </div>
@@ -261,9 +300,9 @@ export const AdminPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' :
-                          user.paymentStatus === 'Unpaid' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          user.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          // user.paymentStatus === 'Unpaid' ? 'bg-red-100 text-red-800' :
+                          // 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {user.paymentStatus}
                         </span>

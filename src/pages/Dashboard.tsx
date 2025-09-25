@@ -271,7 +271,7 @@ export const Dashboard: React.FC = () => {
 
   if (isLoading) return null;
 
-  if (user.status === 'pending') {
+  if (!user || user.status === 'pending') {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

@@ -16,6 +16,50 @@ const generateToken = (id) => {
   });
 };
 
+// @desc    Register a new admin
+// @route   POST /api/admin/register
+// @access  Public (Should be protected in production)
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password, role = 'admin' } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide name, email, and password'
+      });
+    }
+
+    // Check if admin already exists
+    let admin = await Admin.findOne({ email });
+    if (admin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin with this email already exists'
+      });
+    }
+
+    // Create new admin
+    admin = new Admin({
+      name,
+      email,
+      password,
+      role,
+    });
+
+    await admin.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin created successfully',
+      admin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role }
+    });
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @desc    Admin login
 // @route   POST /api/admin/login
 // @access  Public
