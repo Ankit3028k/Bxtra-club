@@ -68,8 +68,8 @@ router.post('/create-payment-intent', protect, async (req, res) => {
   try {
     const { planId } = req.body;
 
-    // Find plan by name instead of ID
-    const plan = await Plan.findOne({ name: planId });
+    // Find plan by name, case-insensitively
+    const plan = await Plan.findOne({ name: { $regex: new RegExp(`^${planId}$`, 'i') } });
     if (!plan) {
       return res.status(404).json({
         success: false,
