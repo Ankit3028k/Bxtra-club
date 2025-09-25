@@ -23,6 +23,9 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// Trust proxy (important for rate limiting behind proxies like Render)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(
   helmet({

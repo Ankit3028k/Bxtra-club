@@ -567,13 +567,34 @@ router.delete('/posts/:id', adminProtect, async (req, res) => {
 // @access  Private (Admin only)
 router.post('/plans', adminProtect, async (req, res) => {
   try {
-    const { name, description, price, features, order, isPopular, isActive } = req.body;
+    const { 
+      name, 
+      description, 
+      price, 
+      currency, 
+      interval,
+      features, 
+      limits,
+      stripeProductId,
+      stripePriceId,
+      order, 
+      isPopular, 
+      isActive 
+    } = req.body;
 
     // Basic validation
-    if (!name || price === undefined) {
+    if (!name || price === undefined || !stripeProductId || !stripePriceId) {
       return res.status(400).json({
         success: false,
-        message: 'Plan name and price are required'
+        message: 'Plan name, price, stripeProductId, and stripePriceId are required'
+      });
+    }
+
+    // Validate features structure
+    if (features && !Array.isArray(features)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Features must be an array of objects'
       });
     }
 
@@ -582,7 +603,12 @@ router.post('/plans', adminProtect, async (req, res) => {
       name,
       description: description || '',
       price,
+      currency: currency || 'INR',
+      interval: interval || 'month',
       features: features || [],
+      limits: limits || {},
+      stripeProductId,
+      stripePriceId,
       order: order || 0,
       isPopular: isPopular || false,
       isActive: isActive !== undefined ? isActive : true
