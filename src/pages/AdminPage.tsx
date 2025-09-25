@@ -18,16 +18,24 @@ interface AdminUser {
 }
 
 interface AdminStats {
-  totalUsers: number;
-  pendingApplications: number;
-  activeEvents: number;
-  monthlyGrowth: number;
+  users: {
+    total: number;
+    pending: number;
+    approved: number;
+    newThisMonth: number;
+  };
+  content: {
+    posts: number;
+    events: number;
+    requests: number;
+  };
+  monthlyGrowth?: number; // Assuming this might come from somewhere else or be calculated
 };
 
 export const AdminPage: React.FC = () => {
   const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [stats, setStats] = useState<AdminStats>({ totalUsers: 0, pendingApplications: 0, activeEvents: 0, monthlyGrowth: 0 });
+  const [stats, setStats] = useState<AdminStats>({ users: { total: 0, pending: 0, approved: 0, newThisMonth: 0 }, content: { posts: 0, events: 0, requests: 0 } });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
@@ -35,7 +43,7 @@ export const AdminPage: React.FC = () => {
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== 'admin')) {
-      navigate('/login');
+      navigate('/admin/login');
       return;
     }
 
@@ -58,9 +66,9 @@ export const AdminPage: React.FC = () => {
         const usersData = await usersRes.json();
         const statsData = await statsRes.json();
 
-        setPendingUsers(usersData.data.filter((u: AdminUser) => u.status === 'pending'));
-        setUsers(usersData.data.filter((u: AdminUser) => u.status === 'approved'));
-        setStats(statsData.data);
+        setPendingUsers(usersData.users.filter((u: AdminUser) => u.status === 'pending'));
+        setUsers(usersData.users.filter((u: AdminUser) => u.status === 'approved'));
+        setStats(statsData.stats);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -80,7 +88,7 @@ export const AdminPage: React.FC = () => {
     try {
       const token = localStorage.getItem('bxtra-token');
       const res = await fetch(`https://bharatx-events.onrender.com/api/admin/users/${userId}/approve`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to approve user');
@@ -100,7 +108,7 @@ export const AdminPage: React.FC = () => {
     try {
       const token = localStorage.getItem('bxtra-token');
       const res = await fetch(`https://bharatx-events.onrender.com/api/admin/users/${userId}/reject`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to reject user');
@@ -141,7 +149,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.users.total}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -151,7 +159,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Pending Applications</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.pendingApplications}</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.users.pending}</p>
               </div>
               <MessageSquare className="h-8 w-8 text-orange-600" />
             </div>
@@ -161,7 +169,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Active Events</p>
-                <p className="text-2xl font-bold text-green-600">{stats.activeEvents}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.content.events}</p>
               </div>
               <Calendar className="h-8 w-8 text-green-600" />
             </div>
@@ -171,7 +179,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Monthly Growth</p>
-                <p className="text-2xl font-bold text-purple-600">+{stats.monthlyGrowth}%</p>
+                <p className="text-2xl font-bold text-purple-600">+{stats.monthlyGrowth || 0}%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
@@ -299,12 +307,9 @@ export const AdminPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                          // user.paymentStatus === 'Unpaid' ? 'bg-red-100 text-red-800' :
-                          // 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {user.paymentStatus}
+                        {/* Payment status is not available from the backend yet */}
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                          N/A
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

@@ -24,11 +24,11 @@ export const RegisterPage: React.FC = () => {
     setError('');
 
     try {
-      const success = await register(formData);
+      const { success, message } = await register(formData);
       if (success) {
         navigate('/choose-plan');
       } else {
-        setError('Registration failed. Please try again.');
+        setError(message || 'Registration failed. Please try again.');
       }
     } catch (err) {
       setError('An error occurred during registration.');

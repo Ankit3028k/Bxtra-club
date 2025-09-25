@@ -4,20 +4,26 @@ interface User {
   id: string;
   name: string;
   email: string;
-  startup: string;
   role: string;
-  city: string;
-  status: 'pending' | 'approved';
-  plan: string;
+  startup?: string;
+  city?: string;
+  status?: 'pending' | 'approved';
+  plan?: string;
   avatar?: string;
+  permissions?: string[];
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: RegisterData) => Promise<boolean>;
+  login: (credentials: LoginCredentials, isAdmin?: boolean) => Promise<{ success: boolean, message?: string }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean, message?: string }>;
   logout: () => void;
 }
 
@@ -101,16 +107,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (credentials: LoginCredentials, isAdmin = false): Promise<{ success: boolean, message?: string }> => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('https://bharatx-events.onrender.com/api/auth/login', {
+      const loginUrl = isAdmin
+        ? 'https://bharatx-events.onrender.com/api/admin/login'
+        : 'https://bharatx-events.onrender.com/api/auth/login';
+
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(credentials),
       });
 
       const data = await response.json();
@@ -120,23 +130,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Save token and user data
+      const userData = data.admin || data.user;
       localStorage.setItem('bxtra-token', data.token);
-      localStorage.setItem('bxtra-user', JSON.stringify(data.user));
-      setUser({
-        ...data.user,
-        id: data.user._id // Map _id to id
-      });
+      localStorage.setItem('bxtra-user', JSON.stringify(userData));
+      // The backend already sends 'id', so no need to map from '_id'
+      setUser(userData);
       
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { success: false, message: error instanceof Error ? error.message : 'Login failed' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (userData: RegisterData): Promise<boolean> => {
+  const register = async (userData: RegisterData): Promise<{ success: boolean, message?: string }> => {
     setIsLoading(true);
     
     try {
@@ -151,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        throw new Error(data.message || 'Registration failed. Please try again.');
       }
 
       // Save token and user data
@@ -159,10 +168,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('bxtra-user', JSON.stringify(data.user));
       setUser(data.user);
       
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
-      return false;
+      return { success: false, message: error instanceof Error ? error.message : 'Registration failed' };
     } finally {
       setIsLoading(false);
     }

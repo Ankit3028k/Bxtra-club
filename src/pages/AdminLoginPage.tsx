@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Mail, Lock } from 'lucide-react';
 
-export const LoginPage: React.FC = () => {
+export const AdminLoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -20,11 +20,15 @@ export const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      const { success, message } = await login({ email: formData.email, password: formData.password });
+      const { success, message } = await login(
+        { email: formData.email, password: formData.password },
+        true // isAdmin flag
+      );
+      
       if (success) {
-        navigate('/dashboard');
+        navigate('/admin/dashboard');
       } else {
-        setError(message || 'Invalid email or password. Please try again.');
+        setError(message || 'Invalid admin credentials. Please try again.');
       }
     } catch (err) {
       setError('An error occurred during login.');
@@ -34,7 +38,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
@@ -42,11 +46,11 @@ export const LoginPage: React.FC = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Home
             </Link>
-            <div className="h-12 w-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold">BX</span>
+            <div className="h-12 w-12 bg-gradient-to-r from-gray-800 to-gray-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold">AD</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="text-gray-600 mt-2">Sign in to your BXtra Club account</p>
+            <h2 className="text-2xl font-bold text-gray-900">Admin Portal</h2>
+            <p className="text-gray-600 mt-2">Sign in to manage BXtra Club</p>
           </div>
 
           {error && (
@@ -55,12 +59,10 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+                Admin Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -70,8 +72,8 @@ export const LoginPage: React.FC = () => {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Enter your email"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-700 focus:border-transparent"
+                  placeholder="admin@bxtraclub.com"
                 />
               </div>
             </div>
@@ -88,44 +90,26 @@ export const LoginPage: React.FC = () => {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-700 focus:border-transparent"
+                  placeholder="•••••••••"
                 />
               </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-
-              <Link to="#" className="text-sm text-purple-600 hover:text-purple-800">
-                Forgot password?
-              </Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-gray-800 to-gray-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-gray-900 hover:to-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Signing In...' : 'Sign In as Admin'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-purple-600 hover:text-purple-800 font-semibold">
-                Join BXtra Club
+              Regular user?{' '}
+              <Link to="/login" className="text-purple-600 hover:text-purple-800 font-semibold">
+                User Login
               </Link>
             </p>
           </div>

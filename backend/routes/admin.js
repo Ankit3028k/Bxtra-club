@@ -6,6 +6,7 @@ const Post = require('../models/Post');
 const Event = require('../models/Event');
 const Request = require('../models/Request');
 const { adminProtect } = require('../middleware/auth');
+const { validateLogin, handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.post('/register', async (req, res) => {
 // @desc    Admin login
 // @route   POST /api/admin/login
 // @access  Public
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, handleValidationErrors, async (req, res) => {
   try {
     const { email, password } = req.body;
 

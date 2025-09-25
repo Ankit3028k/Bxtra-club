@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { PlanSelectionPage } from './pages/PlanSelectionPage';
 import { AdminPage } from './pages/AdminPage';
+import { AdminLoginPage } from './pages/AdminLoginPageNew';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/choose-plan" element={<PlanSelectionPage />} />
             <Route path="/pending" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
