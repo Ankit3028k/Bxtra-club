@@ -313,7 +313,7 @@ export const AdminPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button className="text-purple-600 hover:text-purple-900">View Details</button>
+                      <Link to={`/admin/user/${user.id}`} className="text-purple-600 hover:text-purple-900">View Details</Link>
                       </td>
                     </tr>
                   ))}
