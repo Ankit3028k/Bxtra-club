@@ -3,7 +3,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Plan = require('../models/Plan');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth');
+const { protect,allowPending  } = require('../middleware/auth');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -64,7 +64,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Create Razorpay order
 // @route   POST /api/plans/create-payment-intent
 // @access  Private
-router.post('/create-payment-intent', protect, async (req, res) => {
+router.post('/create-payment-intent', allowPending, async (req, res) => {
   try {
     const { planId } = req.body;
 
