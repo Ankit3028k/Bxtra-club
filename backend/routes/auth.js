@@ -1,17 +1,11 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { generateToken } = require('../utils/tokenUtils');
 const { protect } = require('../middleware/auth');
 const { validateRegister, validateLogin, handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
-
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
-  });
-};
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -157,42 +151,6 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// @desc    Get current user
-// @route   GET /api/auth/me
-// @access  Private
-router.get('/me', protect, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    
-    res.status(200).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        startup: user.startup,
-        role: user.role,
-        city: user.city,
-        status: user.status,
-        plan: user.plan,
-        avatar: user.avatar,
-        bio: user.bio,
-        website: user.website,
-        linkedin: user.linkedin,
-        twitter: user.twitter,
-        connectionCount: user.connectionCount,
-        lastActive: user.lastActive
-      }
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error getting user data'
-    });
-  }
-});
-
 // @desc    Verify token
 // @route   GET /api/auth/verify
 // @access  Public
@@ -239,6 +197,42 @@ router.get('/verify', async (req, res) => {
       success: false,
       valid: false,
       message: 'Token is not valid'
+    });
+  }
+});
+
+// @desc    Get current user
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        startup: user.startup,
+        role: user.role,
+        city: user.city,
+        status: user.status,
+        plan: user.plan,
+        avatar: user.avatar,
+        bio: user.bio,
+        website: user.website,
+        linkedin: user.linkedin,
+        twitter: user.twitter,
+        connectionCount: user.connectionCount,
+        lastActive: user.lastActive
+      }
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting user data'
     });
   }
 });

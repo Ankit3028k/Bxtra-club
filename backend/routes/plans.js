@@ -3,7 +3,8 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Plan = require('../models/Plan');
 const User = require('../models/User');
-const { protect,allowPending  } = require('../middleware/auth');
+const { protect, allowPendingPayment } = require('../middleware/auth');
+// const asyncHandler = require('../middleware/async'); // Assuming you create this file
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -64,7 +65,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Create Razorpay order
 // @route   POST /api/plans/create-payment-intent
 // @access  Private
-router.post('/create-payment-intent', allowPending, async (req, res) => {
+router.post('/create-payment-intent', allowPendingPayment, async (req, res) => {
   try {
     const { planId } = req.body;
 
@@ -102,7 +103,7 @@ router.post('/create-payment-intent', allowPending, async (req, res) => {
 // @desc    Confirm payment and update user plan
 // @route   POST /api/plans/confirm-payment
 // @access  Private
-router.post('/confirm-payment', async (req, res) => {
+router.post('/confirm-payment', protect, async (req, res) => {
   try {
     const { paymentId, orderId, signature, planId } = req.body;
 
@@ -328,28 +329,20 @@ router.get('/subscription', protect, async (req, res) => {
 // @desc    Skip plan selection (choose free plan)
 // @route   POST /api/plans/skip
 // @access  Private
-router.post('/skip', async (req, res) => {
+router.post('/skip', protect, async (req, res) => {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'User ID is required'
-      });
-    }
-    
-    const user = await User.findById(userId);
+    const user = await User.findById(req.user.id);
 
     // If user already has a plan, return error
-    if (user.plan !== 'Free') {
+    if (user.plan && user.plan.toLowerCase() !== 'free') {
       return res.status(400).json({
         success: false,
         message: 'User already has a plan selected'
       });
     }
 
-    // Update user to Free plan and set subscriptionStatus to active
+    // Update user to Free plan and set subscriptionStatus to active.
+    // Also update status to 'approved' if it was 'pending' for the free plan selection.
     user.plan = 'Free';
     user.subscriptionStatus = 'active';
     
@@ -366,6 +359,8 @@ router.post('/skip', async (req, res) => {
       user: {
         id: user._id,
         plan: user.plan,
+        name: user.name,
+        email: user.email,
         subscriptionStatus: user.subscriptionStatus
       }
     });

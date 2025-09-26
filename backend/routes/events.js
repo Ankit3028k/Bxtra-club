@@ -1,6 +1,6 @@
 const express = require('express');
 const Event = require('../models/Event');
-const { protect, requirePlan } = require('../middleware/auth');
+const authMiddleware = require('../middleware/auth');
 const { validateEvent, handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 // @desc    Get all events
 // @route   GET /api/events
 // @access  Private
-router.get('/', protect, async (req, res) => {
+router.get('/', authMiddleware.protect, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -58,7 +58,7 @@ router.get('/', protect, async (req, res) => {
 // @desc    Get single event
 // @route   GET /api/events/:id
 // @access  Private
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', authMiddleware.protect, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id)
       .populate('organizer', 'name startup city avatar')
@@ -87,7 +87,7 @@ router.get('/:id', protect, async (req, res) => {
 // @desc    Create new event
 // @route   POST /api/events
 // @access  Private (Premium+)
-router.post('/', protect, requirePlan('Premium'), validateEvent, handleValidationErrors, async (req, res) => {
+router.post('/', authMiddleware.protect, authMiddleware.requirePlan('Premium'), validateEvent, handleValidationErrors, async (req, res) => {
   try {
     const {
       title,
@@ -142,7 +142,7 @@ router.post('/', protect, requirePlan('Premium'), validateEvent, handleValidatio
 // @desc    Update event
 // @route   PUT /api/events/:id
 // @access  Private
-router.put('/:id', protect, validateEvent, handleValidationErrors, async (req, res) => {
+router.put('/:id', authMiddleware.protect, validateEvent, handleValidationErrors, async (req, res) => {
   try {
     let event = await Event.findById(req.params.id);
 
@@ -154,7 +154,7 @@ router.put('/:id', protect, validateEvent, handleValidationErrors, async (req, r
     }
 
     // Check if user is the organizer
-    if (event.organizer.toString() !== req.user.id) {
+    if (event.organizer.toString() !== req.user.id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this event'
@@ -210,7 +210,7 @@ router.put('/:id', protect, validateEvent, handleValidationErrors, async (req, r
 // @desc    Delete event
 // @route   DELETE /api/events/:id
 // @access  Private
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', authMiddleware.protect, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
 
@@ -222,7 +222,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     // Check if user is the organizer
-    if (event.organizer.toString() !== req.user.id) {
+    if (event.organizer.toString() !== req.user.id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this event'
@@ -247,7 +247,7 @@ router.delete('/:id', protect, async (req, res) => {
 // @desc    Join/Leave event
 // @route   PUT /api/events/:id/join
 // @access  Private
-router.put('/:id/join', protect, async (req, res) => {
+router.put('/:id/join', authMiddleware.protect, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
 
@@ -299,7 +299,7 @@ router.put('/:id/join', protect, async (req, res) => {
 // @desc    Get user's events
 // @route   GET /api/events/my/events
 // @access  Private
-router.get('/my/events', protect, async (req, res) => {
+router.get('/my/events', authMiddleware.protect, async (req, res) => {
   try {
     const { type = 'all' } = req.query;
     let query = {};
@@ -336,7 +336,7 @@ router.get('/my/events', protect, async (req, res) => {
 // @desc    Search events
 // @route   GET /api/events/search
 // @access  Private
-router.get('/search', protect, async (req, res) => {
+router.get('/search', authMiddleware.protect, async (req, res) => {
   try {
     const { q, city, category, date, page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
