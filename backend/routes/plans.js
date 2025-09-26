@@ -119,7 +119,7 @@ router.post('/confirm-payment', protect, async (req, res) => {
       });
     }
 
-    const plan = await Plan.findById(planId);
+    const plan = await Plan.findOne({ name: { $regex: new RegExp(`^${planId}`, 'i') } });
     if (!plan) {
       return res.status(404).json({
         success: false,
@@ -166,7 +166,8 @@ router.post('/create-subscription', protect, async (req, res) => {
   try {
     const { planId, paymentMethodId } = req.body;
 
-    const plan = await Plan.findById(planId);
+    const plan = await Plan.findOne({ name: { $regex: new RegExp(`^${planId}`, 'i') } });
+
     if (!plan) {
       return res.status(404).json({
         success: false,
