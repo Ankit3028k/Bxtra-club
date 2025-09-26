@@ -95,7 +95,7 @@ router.post('/create-payment-intent', allowPendingPayment, async (req, res) => {
     console.error('Create order error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error creating order'
+      message: `Server error creating order: ${error.message}`
     });
   }
 });
@@ -133,7 +133,7 @@ router.post('/confirm-payment', protect, async (req, res) => {
       {
         plan: plan.name,
         subscriptionStatus: 'active',
-        status: 'pending' // Set to pending for admin approval
+        status: 'approved' // Set to approved after successful payment
       },
       { new: true }
     );
