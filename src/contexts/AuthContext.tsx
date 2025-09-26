@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
+import config from '../config/config';
 interface User {
   id: string;
   name: string;
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const response = await fetch('https://bharatx-events.onrender.com/api/auth/me', {
+        const response = await fetch(`${config.backendUrl}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -112,8 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const loginUrl = isAdmin
-        ? 'https://bharatx-events.onrender.com/api/admin/login'
-        : 'https://bharatx-events.onrender.com/api/auth/login';
+        ? `${config.backendUrl}/api/admin/login`
+        : `${config.backendUrl}/api/auth/login`;
 
       const response = await fetch(loginUrl, {
         method: 'POST',
@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      const response = await fetch('https://bharatx-events.onrender.com/api/auth/register', {
+      const response = await fetch(`${config.backendUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

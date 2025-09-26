@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Check, ArrowLeft, Crown, Star } from 'lucide-react';
 import axios from 'axios';
+import config from '../config/config';
 
 interface Plan {
   _id: string;
@@ -28,7 +29,7 @@ export const PlanSelectionPage: React.FC = () => {
     const fetchPlans = async () => {
       try {
         setPageLoading(true);
-        const response = await axios.get('https://bharatx-events.onrender.com/api/plans');
+        const response = await axios.get(`${config.backendUrl}/api/plans`);
         if (response.data.success) {
           // The backend sends plan names like 'Premium', but payment intent expects 'premium'
           const formattedPlans = response.data.plans.map((plan: any) => ({
@@ -67,7 +68,7 @@ export const PlanSelectionPage: React.FC = () => {
     //       throw new Error('User not available');
     //     }
         
-    //     const response = await axios.post('https://bharatx-events.onrender.com/api/plans/skip', {
+    //     const response = await axios.post(`${config.backendUrl}/api/plans/skip`, {
     //       userId: user.id
     //     }, {
     //       headers: {
@@ -88,7 +89,7 @@ export const PlanSelectionPage: React.FC = () => {
     
     try {
       // Create payment intent
-      const response = await axios.post('https://bharatx-events.onrender.com/api/plans/create-payment-intent', {
+      const response = await axios.post(`${config.backendUrl}/api/plans/create-payment-intent`, {
         planId
       }, {
         headers: {
@@ -121,7 +122,7 @@ export const PlanSelectionPage: React.FC = () => {
         handler: async function(response: any) {
           try {
             // Confirm payment
-            await axios.post('https://bharatx-events.onrender.com/api/plans/confirm-payment', {
+            await axios.post(`${config.backendUrl}/api/plans/confirm-payment`, {
               paymentId: response.razorpay_payment_id,
               orderId: response.razorpay_order_id,
               signature: response.razorpay_signature,

@@ -12,7 +12,7 @@ import { CreatePostModal } from '../components/CreatePostModal';
 import { CreateEventModal } from '../components/CreateEventModal';
 import { CreateRequestModal } from '../components/CreateRequestModal';
 import { SearchBar } from '../components/SearchBar';
-
+import config from '../config/config';
 interface User {
   id: string;
   name: string;
@@ -87,7 +87,7 @@ export const Dashboard: React.FC = () => {
 
     const fetchPosts = async () => {
       try {
-        const response = await fetch('https://bharatx-events.onrender.com/api/posts');
+        const response = await fetch(`${config.backendUrl}/api/posts`);
         const data = await response.json();
         if (data.success) {
           setPosts(data.data);
@@ -109,7 +109,7 @@ export const Dashboard: React.FC = () => {
 
   const handleCreatePost = async (postData: { content: string; tags: string[]; image?: string }) => {
     try {
-      const response = await fetch('https://bharatx-events.onrender.com/api/posts', {
+      const response = await fetch(`${config.backendUrl}/api/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export const Dashboard: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`https://bharatx-events.onrender.com/api/posts/${postId}`, {
+      const response = await fetch(`${config.backendUrl}/api/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('bxtra-token')}`
@@ -183,7 +183,7 @@ export const Dashboard: React.FC = () => {
         formData.append('image', eventData.image);
       }
 
-      const response = await fetch('https://bharatx-events.onrender.com/api/events', {
+      const response = await fetch(`${config.backendUrl}/api/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('bxtra-token')}`

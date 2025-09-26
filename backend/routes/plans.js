@@ -95,7 +95,7 @@ router.post('/create-payment-intent', allowPendingPayment, async (req, res) => {
     console.error('Create order error:', error);
     res.status(500).json({
       success: false,
-      message: `Server error creating order: ${JSON.stringify(error)}`
+      message: 'Server error creating order'
     });
   }
 });

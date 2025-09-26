@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, X, Users, Calendar, MessageSquare, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-
+import config from '../config/config';
 interface AdminUser {
   id: string;
   name: string;
@@ -55,8 +55,8 @@ export const AdminPage: React.FC = () => {
         const headers = { 'Authorization': `Bearer ${token}` };
         
         const [usersRes, statsRes] = await Promise.all([
-          fetch('https://bharatx-events.onrender.com/api/admin/users', { headers }),
-          fetch('https://bharatx-events.onrender.com/api/admin/stats', { headers }),
+          fetch(`${config.backendUrl}/api/admin/users`, { headers }),
+          fetch(`${config.backendUrl}/api/admin/stats`, { headers }),
         ]);
 
         if (!usersRes.ok || !statsRes.ok) {
@@ -87,7 +87,7 @@ export const AdminPage: React.FC = () => {
   const handleApprove = async (userId: string) => {
     try {
       const token = localStorage.getItem('bxtra-token');
-      const res = await fetch(`https://bharatx-events.onrender.com/api/admin/users/${userId}/approve`, {
+      const res = await fetch(`${config.backendUrl}/api/admin/users/${userId}/approve`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -107,7 +107,7 @@ export const AdminPage: React.FC = () => {
   const handleReject = async (userId: string) => {
     try {
       const token = localStorage.getItem('bxtra-token');
-      const res = await fetch(`https://bharatx-events.onrender.com/api/admin/users/${userId}/reject`, {
+      const res = await fetch(`${config.backendUrl}/api/admin/users/${userId}/reject`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
